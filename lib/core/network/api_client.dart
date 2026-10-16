@@ -27,9 +27,7 @@ class ApiClient {
   }
   String get url => baseUrl.isNotEmpty
       ? baseUrl.replaceAll(RegExp(r'/$'), '')
-      : (!kIsWeb && defaultTargetPlatform == TargetPlatform.android
-            ? 'http://10.0.2.2:8080/api/v1'
-            : 'http://localhost:8080/api/v1');
+      : 'https://aayplus-backend.onrender.com/api/v1';
 
   Future<dynamic> request(
     String path, {

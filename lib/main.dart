@@ -37,7 +37,7 @@ class AayPlusApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       key: ValueKey(context.watch<AppStateProvider>().signedIn),
-      title: 'AayPlus - Peer-to-Peer Rental Marketplace',
+      title: 'AayPlus',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       navigatorObservers: [DevNavigationObserver()],

@@ -9,7 +9,7 @@ flutter pub get
 flutter run
 ```
 
-Default API: `http://10.0.2.2:8080/api/v1` on Android emulators, `http://localhost:8080/api/v1` elsewhere. Override with `flutter run --dart-define=API_BASE_URL=https://your-api.example/api/v1`.
+Default API: `https://aayplus-backend.onrender.com/api/v1` on all platforms. Override with `flutter run --dart-define=API_BASE_URL=https://your-api.example/api/v1`.
 
 On iOS, fully restart/rebuild after native plugin changes; hot reload does not install camera/video plugins. Real camera capture needs a physical device.
 

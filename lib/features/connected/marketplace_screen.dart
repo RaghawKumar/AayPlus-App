@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'marketplace_widgets.dart';
+import 'account_section.dart';
 import 'inspection_media_screen.dart';
 import 'package:aay_plus/core/logging/dev_log.dart';
 import 'package:flutter/foundation.dart';
@@ -558,63 +559,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
       ],
     ),
   );
-  Widget account(AppStateProvider state) => ListView(
-    padding: const EdgeInsets.all(24),
-    children: [
-      Reveal(
-        child: FeatureBanner(
-          eyebrow: 'Your AayPlus',
-          title: state.currentUser.name,
-          subtitle:
-              '${state.currentUser.phone}\nOne account. Endless possibilities.',
-          icon: Icons.person_outline,
-        ),
-      ),
-      const SizedBox(height: 24),
-      Card(
-        child: ListTile(
-          leading: const Icon(Icons.verified_user_outlined),
-          title: const Text('Identity verification'),
-          subtitle: Text(
-            '${state.user?['kyc_status']}\n${state.currentUser.identityVerified ? 'You can list and request rentals.' : 'An administrator must review your account before you can rent or host.'}',
-          ),
-        ),
-      ),
-      const SizedBox(height: 16),
-      OutlinedButton(
-        onPressed: () async {
-          final values = await editFields(context, 'Edit your profile', {
-            'name': state.currentUser.name,
-            'email': state.currentUser.email,
-          });
-          if (values != null) {
-            act(() => state.mutate('/me', values, method: 'PATCH'));
-          }
-        },
-        child: const Text('Edit profile'),
-      ),
-      const SizedBox(height: 24),
-      const Text(
-        'Account ledger',
-        style: TextStyle(fontWeight: FontWeight.w700),
-      ),
-      const SizedBox(height: 8),
-      const Text(
-        'Accounting intentions only. Payment collection and refunds are not configured.',
-      ),
-      ...state.ledgerRows.map(
-        (row) => ListTile(
-          title: Text(row['kind'].toString().replaceAll('_', ' ')),
-          subtitle: Text(row['booking_id']),
-          trailing: Text(rupees(row['amount_paise'])),
-        ),
-      ),
-      const SizedBox(height: 24),
-      OutlinedButton(
-        onPressed: acting ? null : () => act(state.signOut),
-        child: const Text('Sign out'),
-      ),
-    ],
+  Widget account(AppStateProvider state) => AccountSection(
+    state: state,
+    busy: acting,
+    onEdit: () async {
+      final values = await editFields(context, 'Edit your profile', {
+        'name': state.currentUser.name,
+        'email': state.currentUser.email,
+      });
+      if (values != null && mounted) {
+        await act(() => state.mutate('/me', values, method: 'PATCH'));
+      }
+    },
+    onSignOut: () => act(state.signOut),
   );
 }
 

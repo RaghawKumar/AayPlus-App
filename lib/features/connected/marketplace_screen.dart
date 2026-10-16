@@ -538,20 +538,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
             padding: const EdgeInsets.only(top: 14),
             child: Card(
               child: ListTile(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => HostListingScreen(listing: row),
+                  ),
+                ),
+                leading: Icon(categoryIcon(row['category']), color: ink),
                 title: Text(row['title']),
                 subtitle: Text(
                   '${row['active'] == true ? 'Active' : 'Archived'} · ${rupees(row['hourly_paise'])} / hour',
                 ),
-                trailing: Switch(
-                  value: row['active'] == true,
-                  onChanged: acting
-                      ? null
-                      : (value) => act(
-                          () => state.mutate('/listings/${row['id']}', {
-                            'active': value,
-                          }, method: 'PATCH'),
-                        ),
-                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
               ),
             ),
           ),
@@ -941,9 +939,305 @@ class _ListingRequestScreenState extends State<ListingRequestScreen> {
   }
 }
 
+class HostListingScreen extends StatefulWidget {
+  final Map<String, dynamic> listing;
+  const HostListingScreen({super.key, required this.listing});
+  @override
+  State<HostListingScreen> createState() => _HostListingScreenState();
+}
+
+class _HostListingScreenState extends State<HostListingScreen> {
+  bool saving = false;
+  int photoIndex = 0;
+  String? error;
+
+  Future<void> changeVisibility(Map<String, dynamic> row) async {
+    if (saving) return;
+    final state = context.read<AppStateProvider>();
+    final active = row['active'] == true;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(active ? 'Archive this listing?' : 'Restore this listing?'),
+        content: Text(
+          active
+              ? 'It will be hidden from Explore and stop accepting new requests. Existing bookings stay available.'
+              : 'It will appear in Explore and accept new rental requests again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(active ? 'Archive' : 'Restore'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      await state.mutate('/listings/${row['id']}', {
+        'active': !active,
+      }, method: 'PATCH');
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppStateProvider>();
+    var row = widget.listing;
+    for (final item in state.ownListingRows) {
+      if (item['id'] == row['id']) {
+        row = item;
+        break;
+      }
+    }
+    final current = row;
+    final theme = Theme.of(context).textTheme;
+    final photos = List<String>.from(row['photos']);
+    final active = row['active'] == true;
+    final bookings = state.bookingRows
+        .where(
+          (b) =>
+              b['listing_id'] == row['id'] &&
+              b['owner_id'] == state.currentUser.id,
+        )
+        .toList();
+    Widget fallback() => ColoredBox(
+      color: AppColors.elevatedNavy,
+      child: Center(
+        child: Icon(
+          categoryIcon(row['category']),
+          size: 72,
+          color: AppColors.textMuted,
+        ),
+      ),
+    );
+    return Scaffold(
+      appBar: AppBar(title: const Text('Listing details')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: RefreshIndicator(
+            onRefresh: state.refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: AspectRatio(
+                    aspectRatio: 1.4,
+                    child: photos.isEmpty
+                        ? fallback()
+                        : PageView(
+                            onPageChanged: (i) =>
+                                setState(() => photoIndex = i),
+                            children: photos
+                                .map(
+                                  (url) => Image.network(
+                                    state.api.mediaUrl(url),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, error, stack) =>
+                                        fallback(),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                  ),
+                ),
+                if (photos.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(
+                      '${photoIndex.clamp(0, photos.length - 1) + 1} of ${photos.length} photos · Swipe to browse',
+                      textAlign: TextAlign.center,
+                      style: theme.bodySmall,
+                    ),
+                  ),
+                const SizedBox(height: 22),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Chip(
+                      avatar: Icon(categoryIcon(row['category']), size: 16),
+                      label: Text(row['category']),
+                    ),
+                    Chip(
+                      avatar: Icon(
+                        active
+                            ? Icons.visibility_outlined
+                            : Icons.archive_outlined,
+                        size: 16,
+                        color: active ? AppColors.success : AppColors.textMuted,
+                      ),
+                      label: Text(active ? 'Active' : 'Archived'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(row['title'], style: theme.headlineSmall),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(row['location'], style: theme.bodyMedium),
+                    ),
+                  ],
+                ),
+                const SectionTitle(
+                  'About this item',
+                  'What renters will see on your listing.',
+                ),
+                Text(row['description'], style: theme.bodyLarge),
+                const SectionTitle(
+                  'Your rental prices',
+                  'Updated prices apply to new bookings.',
+                ),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        for (final entry in {
+                          'Per hour': 'hourly_paise',
+                          'Per day': 'daily_paise',
+                          'Per week': 'weekly_paise',
+                          'Refundable deposit': 'deposit_paise',
+                        }.entries)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    entry.key,
+                                    style: theme.bodyMedium,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Text(
+                                    rupees(row[entry.value]),
+                                    style: theme.titleMedium,
+                                    textAlign: TextAlign.end,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  active
+                      ? 'Visible in Explore. Renters can request available dates.'
+                      : 'Hidden from Explore. Restore it when you’re ready to accept requests.',
+                  style: theme.bodySmall,
+                ),
+                SectionTitle(
+                  'Bookings for this item',
+                  '${bookings.length} ${bookings.length == 1 ? 'booking' : 'bookings'}',
+                ),
+                if (bookings.isEmpty)
+                  const Text(
+                    'New booking requests for this listing will appear here.',
+                  ),
+                ...bookings.map(
+                  (booking) => BookingSummaryCard(
+                    booking: booking,
+                    hosting: true,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookingScreen(id: booking['id']),
+                      ),
+                    ),
+                  ),
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      error!,
+                      style: const TextStyle(color: AppColors.danger),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: saving
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ListingEditorScreen(listing: current),
+                          ),
+                        ),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit listing'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: saving ? null : () => changeVisibility(current),
+                  icon: Icon(
+                    active ? Icons.archive_outlined : Icons.unarchive_outlined,
+                    size: 18,
+                  ),
+                  label: Text(
+                    saving
+                        ? 'Saving…'
+                        : active
+                        ? 'Archive'
+                        : 'Restore',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ListingEditorScreen extends StatefulWidget {
   final ImagePicker? imagePicker;
-  const ListingEditorScreen({super.key, this.imagePicker});
+  final Map<String, dynamic>? listing;
+  const ListingEditorScreen({super.key, this.imagePicker, this.listing});
   @override
   State<ListingEditorScreen> createState() => _ListingEditorScreenState();
 }
@@ -951,12 +1245,31 @@ class ListingEditorScreen extends StatefulWidget {
 class _ListingEditorScreenState extends State<ListingEditorScreen> {
   late final ImagePicker picker = widget.imagePicker ?? ImagePicker();
   final selectedPhotos = <_ListingPhoto>[];
+  final existingPhotos = <String>[];
+  int get photoCount => selectedPhotos.length + existingPhotos.length;
   bool picking = false;
   String? uploadStatus;
   @override
   void initState() {
     super.initState();
-    DevLog.screen('Create listing');
+    DevLog.screen(widget.listing == null ? 'Create listing' : 'Edit listing');
+    final row = widget.listing;
+    if (row != null) {
+      for (final key in ['title', 'description', 'location']) {
+        fields[key]!.text = row[key];
+      }
+      for (final entry in {
+        'hourly price': 'hourly_paise',
+        'daily price': 'daily_paise',
+        'weekly price': 'weekly_paise',
+        'deposit': 'deposit_paise',
+      }.entries) {
+        fields[entry.key]!.text = ((row[entry.value] as num) / 100)
+            .toStringAsFixed(2);
+      }
+      category = row['category'];
+      existingPhotos.addAll(List<String>.from(row['photos']));
+    }
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
       recoverPhotos();
   }
@@ -977,7 +1290,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
 
   Future<void> addPhotos(List<XFile> files) async {
     for (final file in files) {
-      if (!mounted || selectedPhotos.length >= 12) return;
+      if (!mounted || photoCount >= 12) return;
       if (await file.length() > 8 * 1024 * 1024) {
         if (mounted)
           setState(() => error = 'Each photo must be smaller than 8 MB.');
@@ -989,7 +1302,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
   }
 
   Future<void> pickPhotos(ImageSource source) async {
-    if (picking || busy || selectedPhotos.length >= 12) return;
+    if (picking || busy || photoCount >= 12) return;
     FocusScope.of(context).unfocus();
     DevLog.action(
       source == ImageSource.camera ? 'Take photo' : 'Choose photos',
@@ -1010,7 +1323,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
         if (file != null) await addPhotos([file]);
       } else {
         final files = await picker.pickMultiImage(
-          limit: 12 - selectedPhotos.length,
+          limit: 12 - photoCount,
           imageQuality: 85,
           maxWidth: 1600,
           maxHeight: 1600,
@@ -1105,7 +1418,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
       error = null;
     });
     try {
-      final urls = <String>[];
+      final urls = [...existingPhotos];
       for (var i = 0; i < selectedPhotos.length; i++) {
         if (mounted)
           setState(
@@ -1116,22 +1429,34 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
         photo.url ??= await state.api.uploadImage(photo.bytes);
         urls.add(photo.url!);
       }
-      if (mounted) setState(() => uploadStatus = 'Publishing listing…');
+      if (mounted)
+        setState(
+          () => uploadStatus = widget.listing == null
+              ? 'Publishing listing…'
+              : 'Saving changes…',
+        );
       if (!mounted) return;
-      await state.mutate('/listings', {
-        'title': fields['title']!.text.trim(),
-        'description': fields['description']!.text.trim(),
-        'location': fields['location']!.text.trim(),
-        'category': category,
-        'hourly_paise': (double.parse(fields['hourly price']!.text) * 100)
-            .round(),
-        'daily_paise': (double.parse(fields['daily price']!.text) * 100)
-            .round(),
-        'weekly_paise': (double.parse(fields['weekly price']!.text) * 100)
-            .round(),
-        'deposit_paise': (double.parse(fields['deposit']!.text) * 100).round(),
-        'photos': urls,
-      });
+      await state.mutate(
+        widget.listing == null
+            ? '/listings'
+            : '/listings/${widget.listing!['id']}',
+        {
+          'title': fields['title']!.text.trim(),
+          'description': fields['description']!.text.trim(),
+          'location': fields['location']!.text.trim(),
+          'category': category,
+          'hourly_paise': (double.parse(fields['hourly price']!.text) * 100)
+              .round(),
+          'daily_paise': (double.parse(fields['daily price']!.text) * 100)
+              .round(),
+          'weekly_paise': (double.parse(fields['weekly price']!.text) * 100)
+              .round(),
+          'deposit_paise': (double.parse(fields['deposit']!.text) * 100)
+              .round(),
+          'photos': urls,
+        },
+        method: widget.listing == null ? 'POST' : 'PATCH',
+      );
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) setState(() => error = e.toString());
@@ -1142,7 +1467,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('List an item')),
+    appBar: AppBar(
+      title: Text(widget.listing == null ? 'List an item' : 'Edit listing'),
+    ),
     body: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
@@ -1151,12 +1478,17 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              const Reveal(
+              Reveal(
                 child: FeatureBanner(
-                  eyebrow: 'Create something worth sharing',
-                  title: 'Your item.\nTheir next adventure.',
-                  subtitle:
-                      'Great photos and thoughtful details make a great first impression.',
+                  eyebrow: widget.listing == null
+                      ? 'Create something worth sharing'
+                      : 'Keep your listing up to date',
+                  title: widget.listing == null
+                      ? 'Your item.\nTheir next adventure.'
+                      : 'A little update.\nA better listing.',
+                  subtitle: widget.listing == null
+                      ? 'Great photos and thoughtful details make a great first impression.'
+                      : 'Update details, photos and prices. Existing bookings keep their recorded amounts.',
                   icon: Icons.add_photo_alternate_outlined,
                 ),
               ),
@@ -1241,14 +1573,14 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
                 runSpacing: 10,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: busy || picking || selectedPhotos.length >= 12
+                    onPressed: busy || picking || photoCount >= 12
                         ? null
                         : () => pickPhotos(ImageSource.gallery),
                     icon: const Icon(Icons.photo_library_outlined),
                     label: const Text('Choose photos'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: busy || picking || selectedPhotos.length >= 12
+                    onPressed: busy || picking || photoCount >= 12
                         ? null
                         : () => pickPhotos(ImageSource.camera),
                     icon: const Icon(Icons.camera_alt_outlined),
@@ -1265,48 +1597,94 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: List.generate(
-                  selectedPhotos.length,
-                  (i) => SizedBox(
-                    width: 140,
-                    height: 140,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.memory(
-                            selectedPhotos[i].bytes,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, error, stack) => const Center(
-                              child: Text('Preview unavailable'),
+                children: [
+                  ...existingPhotos.asMap().entries.map(
+                    (entry) => SizedBox(
+                      width: 140,
+                      height: 140,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              context.read<AppStateProvider>().api.mediaUrl(
+                                entry.value,
+                              ),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, error, stack) => const Center(
+                                child: Icon(Icons.image_not_supported_outlined),
+                              ),
                             ),
                           ),
-                        ),
-                        if (i == 0)
-                          const Positioned(
-                            bottom: 6,
-                            left: 6,
-                            child: Chip(label: Text('Cover')),
+                          if (entry.key == 0)
+                            const Positioned(
+                              bottom: 6,
+                              left: 6,
+                              child: Chip(label: Text('Cover')),
+                            ),
+                          Positioned(
+                            top: 2,
+                            right: 2,
+                            child: IconButton.filled(
+                              tooltip: 'Remove existing photo ${entry.key + 1}',
+                              onPressed: busy || picking
+                                  ? null
+                                  : () => setState(
+                                      () => existingPhotos.removeAt(entry.key),
+                                    ),
+                              icon: const Icon(Icons.close, size: 18),
+                            ),
                           ),
-                        Positioned(
-                          top: 2,
-                          right: 2,
-                          child: IconButton.filled(
-                            tooltip: 'Remove photo ${i + 1}',
-                            onPressed: busy || picking
-                                ? null
-                                : () {
-                                    DevLog.action('Remove listing photo');
-                                    setState(() => selectedPhotos.removeAt(i));
-                                  },
-                            icon: const Icon(Icons.close, size: 18),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                  ...List.generate(
+                    selectedPhotos.length,
+                    (i) => SizedBox(
+                      width: 140,
+                      height: 140,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.memory(
+                              selectedPhotos[i].bytes,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, error, stack) => const Center(
+                                child: Text('Preview unavailable'),
+                              ),
+                            ),
+                          ),
+                          if (i == 0 && existingPhotos.isEmpty)
+                            const Positioned(
+                              bottom: 6,
+                              left: 6,
+                              child: Chip(label: Text('Cover')),
+                            ),
+                          Positioned(
+                            top: 2,
+                            right: 2,
+                            child: IconButton.filled(
+                              tooltip: 'Remove photo ${i + 1}',
+                              onPressed: busy || picking
+                                  ? null
+                                  : () {
+                                      DevLog.action('Remove listing photo');
+                                      setState(
+                                        () => selectedPhotos.removeAt(i),
+                                      );
+                                    },
+                              icon: const Icon(Icons.close, size: 18),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               if (error != null)
                 Padding(
@@ -1320,7 +1698,11 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
               FilledButton(
                 onPressed: busy || picking ? null : save,
                 child: Text(
-                  busy ? uploadStatus ?? 'Saving…' : 'Publish listing',
+                  busy
+                      ? uploadStatus ?? 'Saving…'
+                      : widget.listing == null
+                      ? 'Publish listing'
+                      : 'Save changes',
                 ),
               ),
             ],

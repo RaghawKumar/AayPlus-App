@@ -31,6 +31,7 @@ class ApiFixture {
     'active': true,
   };
   final bookings = <Map<String, dynamic>>[];
+  final ownListings = <Map<String, dynamic>>[];
   late final ApiClient client = ApiClient(
     baseUrl: 'http://test/api/v1',
     client: MockClient(handle),
@@ -68,6 +69,9 @@ class ApiFixture {
       if (request.method == 'PATCH')
         user.addAll(Map<String, dynamic>.from(jsonDecode(request.body)));
       data = user;
+    } else if (path.startsWith('/listings/') && request.method == 'PATCH') {
+      listing.addAll(Map<String, dynamic>.from(jsonDecode(request.body)));
+      data = listing;
     } else if (path == '/bookings/quote') {
       data = {
         'rental_paise': 48000,
@@ -104,6 +108,7 @@ class ApiFixture {
       data = {
         'items': switch (path) {
           '/listings' => [listing],
+          '/me/listings' => ownListings,
           '/bookings' => bookings,
           _ => <dynamic>[],
         },

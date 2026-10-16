@@ -192,17 +192,24 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
           );
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.search), label: 'Explore'),
+          NavigationDestination(
+            icon: Icon(Icons.search_rounded),
+            selectedIcon: Icon(Icons.explore_rounded),
+            label: 'Explore',
+          ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month_rounded),
             label: 'Rentals',
           ),
           NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
+            selectedIcon: Icon(Icons.inventory_2_rounded),
             label: 'Listings',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person_rounded),
             label: 'Account',
           ),
         ],
@@ -253,7 +260,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
                       'Rent from your community',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -302,7 +309,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
                           color: selected ? ink : Colors.white,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: selected ? ink : AppColors.borderMedium,
+                            color: selected ? ink : AppColors.borderNavy,
                           ),
                         ),
                         child: Row(
@@ -343,7 +350,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
                   ),
                   title: const Text(
                     'One step closer to your first rental',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                   ),
                   subtitle: const Text(
                     'Verify your account before renting or hosting.',
@@ -364,7 +371,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
                 child: Text(
                   '${rows.length} ${rows.length == 1 ? 'rental' : 'rentals'} to explore',
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: AppColors.textMuted,
                   ),
                 ),
@@ -805,7 +812,7 @@ class _ListingRequestScreenState extends State<ListingRequestScreen> {
               Text(
                 row['title'],
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 12),
@@ -861,7 +868,7 @@ class _ListingRequestScreenState extends State<ListingRequestScreen> {
                                   rupees(row['${period}_paise']),
                                   style: const TextStyle(
                                     fontSize: 17,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
@@ -1506,7 +1513,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 Text(
                   b['listing']['title'],
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 12),

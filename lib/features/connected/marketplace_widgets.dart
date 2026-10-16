@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:aay_plus/core/constants/app_colors.dart';
 
-const ink = Color(0xFF12243A);
+const ink = AppColors.brandNavy;
 const warm = Color(0xFFFFF4DD);
 
 class Reveal extends StatelessWidget {
@@ -50,8 +50,15 @@ class FeatureBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(
-      color: ink,
-      borderRadius: BorderRadius.circular(26),
+      gradient: AppColors.brandGradient,
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: ink.withValues(alpha: .12),
+          blurRadius: 24,
+          offset: const Offset(0, 10),
+        ),
+      ],
     ),
     child: Stack(
       children: [
@@ -88,9 +95,9 @@ class FeatureBanner extends StatelessWidget {
                 eyebrow.toUpperCase(),
                 style: const TextStyle(
                   color: Color(0xFFFFCC76),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.4,
                 ),
               ),
               const SizedBox(height: 14),
@@ -98,8 +105,8 @@ class FeatureBanner extends StatelessWidget {
                 title,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -.8,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -.7,
                   height: 1.15,
                 ),
               ),
@@ -109,7 +116,7 @@ class FeatureBanner extends StatelessWidget {
                 style: const TextStyle(
                   color: Color(0xFFC2CFDE),
                   fontSize: 13,
-                  height: 1.7,
+                  height: 1.55,
                 ),
               ),
               if (action != null) ...[const SizedBox(height: 18), action!],
@@ -133,7 +140,7 @@ class SectionTitle extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             letterSpacing: -.6,
           ),
         ),
@@ -175,20 +182,26 @@ class ListingTile extends StatelessWidget {
     final price = NumberFormat('#,##0.##');
     final category = row['category'] as String;
     Widget fallback() => Container(
-      color: warm,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF1F4F8), Color(0xFFE5EBF2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Center(
         child: Icon(
           categoryIcon(category),
           size: 64,
-          color: const Color(0xFFB58B48),
+          color: const Color(0xFF7F91A8),
         ),
       ),
     );
     return Padding(
-      padding: const EdgeInsets.only(bottom: 22),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Card(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: AppColors.borderNavy),
         ),
         clipBehavior: Clip.antiAlias,
@@ -236,7 +249,7 @@ class ListingTile extends StatelessWidget {
                           Text(
                             category,
                             style: const TextStyle(
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -261,7 +274,7 @@ class ListingTile extends StatelessWidget {
                           '${photos.length} ${photos.length == 1 ? 'photo' : 'photos'}',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: 12,
                           ),
                         ),
                       ),
@@ -269,7 +282,7 @@ class ListingTile extends StatelessWidget {
                 ],
               ),
               Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -287,7 +300,7 @@ class ListingTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               color: AppColors.textMuted,
                             ),
                           ),
@@ -300,8 +313,8 @@ class ListingTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: -.4,
                       ),
                     ),
@@ -316,7 +329,7 @@ class ListingTile extends StatelessWidget {
                         height: 1.6,
                       ),
                     ),
-                    const Divider(height: 28),
+                    const Divider(height: 32),
                     Row(
                       children: [
                         Expanded(
@@ -331,14 +344,14 @@ class ListingTile extends StatelessWidget {
                                           '₹${price.format(row['hourly_paise'] / 100)}',
                                       style: const TextStyle(
                                         fontSize: 22,
-                                        fontWeight: FontWeight.w800,
+                                        fontWeight: FontWeight.w700,
                                         color: ink,
                                       ),
                                     ),
                                     const TextSpan(
                                       text: ' / hour',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         color: AppColors.textMuted,
                                       ),
                                     ),
@@ -349,7 +362,7 @@ class ListingTile extends StatelessWidget {
                               Text(
                                 '₹${price.format(row['daily_paise'] / 100)} per day',
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: AppColors.textMuted,
                                 ),
                               ),
@@ -375,7 +388,7 @@ class ListingTile extends StatelessWidget {
                     Text(
                       'Refundable deposit ₹${price.format(row['deposit_paise'] / 100)}',
                       style: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -418,7 +431,7 @@ class RentalProgress extends StatelessWidget {
             stage < 0
                 ? 'Booking ${status.replaceAll('_', ' ')}'
                 : 'Your rental journey',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 18),
           Row(
@@ -459,7 +472,7 @@ class RentalProgress extends StatelessWidget {
                                 : Text(
                                     '${i + 1}',
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w700,
                                       color: i <= stage
                                           ? Colors.white
@@ -486,7 +499,7 @@ class RentalProgress extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 8,
                         fontWeight: i == stage
-                            ? FontWeight.w800
+                            ? FontWeight.w700
                             : FontWeight.w500,
                         color: i <= stage ? ink : AppColors.textMuted,
                       ),
@@ -501,7 +514,7 @@ class RentalProgress extends StatelessWidget {
               padding: EdgeInsets.only(top: 14),
               child: Text(
                 'A damage claim is awaiting administrator review.',
-                style: TextStyle(fontSize: 11, color: AppColors.amberDeep),
+                style: TextStyle(fontSize: 12, color: AppColors.amberDeep),
               ),
             ),
         ],
@@ -630,7 +643,7 @@ class RentalFlowScreen extends StatelessWidget {
       const SizedBox(height: 24),
       ...steps.map(
         (step) => Padding(
-          padding: const EdgeInsets.only(bottom: 22),
+          padding: const EdgeInsets.only(bottom: 20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -645,7 +658,7 @@ class RentalFlowScreen extends StatelessWidget {
                 child: Text(
                   step.$1,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.amberDeep,
                   ),
                 ),
@@ -659,7 +672,7 @@ class RentalFlowScreen extends StatelessWidget {
                       step.$2,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 7),
@@ -667,7 +680,7 @@ class RentalFlowScreen extends StatelessWidget {
                       step.$3,
                       style: const TextStyle(
                         fontSize: 13,
-                        height: 1.7,
+                        height: 1.55,
                         color: AppColors.textMuted,
                       ),
                     ),
@@ -739,7 +752,7 @@ class BookingSummaryCard extends StatelessWidget {
                         child: Text(
                           status.replaceAll('_', ' '),
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -752,14 +765,14 @@ class BookingSummaryCard extends StatelessWidget {
                   booking['listing']['title'],
                   style: const TextStyle(
                     fontSize: 17,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '${hosting ? 'Rented by' : 'Hosted by'} ${hosting ? booking['renter_name'] : booking['owner_name']}',
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: AppColors.textMuted,
                   ),
                 ),
@@ -774,7 +787,7 @@ class BookingSummaryCard extends StatelessWidget {
                           const Text(
                             'PICKUP',
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 11,
                               letterSpacing: 1,
                               color: AppColors.textMuted,
                             ),
@@ -805,7 +818,7 @@ class BookingSummaryCard extends StatelessWidget {
                           const Text(
                             'RETURN',
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 11,
                               letterSpacing: 1,
                               color: AppColors.textMuted,
                             ),
@@ -831,7 +844,7 @@ class BookingSummaryCard extends StatelessWidget {
                         'Follow your rental',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
